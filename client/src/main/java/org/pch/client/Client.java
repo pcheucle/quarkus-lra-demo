@@ -1,5 +1,6 @@
 package org.pch.client;
 
+import java.net.URI;
 import java.util.UUID;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
@@ -17,6 +18,8 @@ public class Client extends PanacheEntityBase {
     private String email;
 
     private boolean deleted;
+    
+    private URI lra; 
 
     public UUID getId() {
         return id;
@@ -49,4 +52,12 @@ public class Client extends PanacheEntityBase {
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
     }
+    
+    public URI getLra() {
+		return lra;
+	}
+
+	public void setLra(URI lra) {
+		this.lra = lra;
+	}
 }

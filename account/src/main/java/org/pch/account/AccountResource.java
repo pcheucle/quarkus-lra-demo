@@ -1,11 +1,15 @@
 package org.pch.account;
 
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 import org.jboss.logging.Logger;
 
 import jakarta.persistence.LockModeType;
@@ -13,6 +17,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -36,12 +41,15 @@ public class AccountResource {
 
 	@DELETE
 	@Transactional
-	public Response deleteAccounts(@QueryParam("clientId") UUID clientId) {
+	@LRA(value = LRA.Type.MANDATORY, end = false)
+	public Response deleteAccounts(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lra,
+			@QueryParam("clientId") UUID clientId) {
 
 		List<Account> accounts = Account.find("clientId", clientId).withLock(LockModeType.PESSIMISTIC_WRITE).list();
 
 		for (Account account : accounts) {
 			if (account.getBalance().compareTo(BigDecimal.ZERO) == 0) {
+				account.setLra(lra);
 				account.setClosed(true);
 				LOG.info("Close account " + account.getNumber());
 			} else {
@@ -53,6 +61,25 @@ public class AccountResource {
 		}
 
 		return Response.noContent().build();
+	}
+
+	@Path("compensate")
+	@Compensate
+	@Transactional
+	public Response compensate(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lra) throws Exception {
+
+		LOG.info("Compensating LRA " + lra);
+		List<Account> accounts = Account.find("lra", lra).list();
+		if(accounts.isEmpty()) {
+			LOG.info("No account to revert found with LRA " + lra);
+		}
+		for (Account account : accounts) {
+			LOG.info("Revert account " + account.getId() + " closing corresponding to LRA " + lra);
+			account.setClosed(false);
+		}
+
+		return Response.ok().build();
+
 	}
 
 	@PUT

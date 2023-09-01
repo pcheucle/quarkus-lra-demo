@@ -1,6 +1,7 @@
 package org.pch.account;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +26,8 @@ public class Account extends PanacheEntityBase {
     private BigDecimal balance;
 
     private boolean closed;
+    
+    private URI lra;
 
     public UUID getId() {
         return id;
@@ -65,4 +68,12 @@ public class Account extends PanacheEntityBase {
     public void setClosed(boolean closed) {
         this.closed = closed;
     }
+    
+	public URI getLra() {
+		return lra;
+	}
+
+	public void setLra(URI lra) {
+		this.lra = lra;
+	}
 }

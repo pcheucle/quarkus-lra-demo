@@ -1,17 +1,23 @@
 package org.pch.client;
 
+import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT_HEADER;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 import org.jboss.logging.Logger;
 
 import io.quarkus.panache.common.Sort;
+import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -58,13 +64,15 @@ public class ClientResource {
 	@DELETE
 	@Path("{id}")
 	@Transactional
-	public Response deleteClient(@PathParam("id") UUID clientId) {
-		
+	@LRA(value = LRA.Type.MANDATORY, end = false)
+	public Response deleteClient(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lra, @PathParam("id") UUID clientId) {
+
 		LOG.info("Deleting client " + clientId);
 
 		Client client = Client.findById(clientId);
 
 		if (client != null) {
+			client.setLra(lra);
 			client.setDeleted(true);
 			LOG.info("Client " + clientId + " deleted");
 			return Response.noContent().build();
@@ -73,6 +81,22 @@ public class ClientResource {
 			LOG.info("Client " + clientId + " not found");
 			return Response.status(Response.Status.NOT_FOUND).build();
 		}
+
+	}
+
+	@Path("compensate")
+	@Compensate
+	@Transactional
+	public Response compensate(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lra) throws Exception {
+
+		LOG.info("Compensating LRA " + lra);
+		Client client = Client.find("lra", lra).withLock(LockModeType.PESSIMISTIC_WRITE).firstResult();
+		if (client != null) {
+			LOG.info("Revert client " + client.getId() + " deletion corresponding to LRA " + lra);
+			client.setDeleted(false);
+		}
+
+		return Response.ok().build();
 
 	}
 
