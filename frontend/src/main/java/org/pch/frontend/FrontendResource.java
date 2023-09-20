@@ -21,6 +21,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 
@@ -31,6 +32,11 @@ public class FrontendResource {
 
 	@ServerExceptionMapper
 	public Response mapException(WebApplicationException ex) {
+		return Response.serverError().build();
+	}
+	
+	@ServerExceptionMapper
+	public Response mapException(ProcessingException ex) {
 		return Response.serverError().build();
 	}
 
@@ -56,7 +62,7 @@ public class FrontendResource {
 
 	@DELETE
 	@Path("clients/{id}")
-	@LRA
+	@LRA(timeLimit = 5)
 	public void deleteClient(@PathParam("id") UUID clientId) {
 		LOG.info("Deleting client " + clientId);
 		clientService.deleteClient(clientId);
