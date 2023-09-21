@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.eclipse.microprofile.lra.annotation.Compensate;
+import org.eclipse.microprofile.lra.annotation.Complete;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 import org.jboss.logging.Logger;
 
@@ -45,6 +46,7 @@ public class ClientResource {
 		client.setId(clientDTO.getId());
 		client.setEmail(clientDTO.getEmail());
 		client.setFullName(clientDTO.getFullName());
+		client.setDirty(false);
 
 		client.persist();
 
@@ -74,6 +76,7 @@ public class ClientResource {
 		if (client != null) {
 			client.setLra(lra);
 			client.setDeleted(true);
+			client.setDirty(true);
 			LOG.info("Client " + clientId + " deleted");
 			return Response.noContent().build();
 
@@ -94,6 +97,23 @@ public class ClientResource {
 		if (client != null) {
 			LOG.info("Revert client " + client.getId() + " deletion corresponding to LRA " + lra);
 			client.setDeleted(false);
+			client.setDirty(false);
+		}
+
+		return Response.ok().build();
+
+	}
+
+	@Path("complete")
+	@Complete
+	@Transactional
+	public Response complete(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lra) {
+
+		LOG.info("Completing LRA " + lra);
+		Client client = Client.find("lra", lra).withLock(LockModeType.PESSIMISTIC_WRITE).firstResult();
+		if (client != null) {
+			LOG.info("Confirm client " + client.getId() + " deletion corresponding to LRA " + lra);
+			client.setDirty(false);
 		}
 
 		return Response.ok().build();
@@ -112,7 +132,7 @@ public class ClientResource {
 			clientDTO.setFullName(client.getFullName());
 			clientDTO.setId(client.getId());
 			clientDTO.setDeleted(client.isDeleted());
-
+			clientDTO.setDirty(client.isDirty());
 			return Response.ok().entity(clientDTO).build();
 
 		} else {
@@ -136,6 +156,7 @@ public class ClientResource {
 			clientDTO.setFullName(client.getFullName());
 			clientDTO.setId(client.getId());
 			clientDTO.setDeleted(client.isDeleted());
+			clientDTO.setDirty(client.isDirty());
 
 			clientDTOs.add(clientDTO);
 		}

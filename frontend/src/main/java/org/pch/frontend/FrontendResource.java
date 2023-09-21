@@ -62,7 +62,7 @@ public class FrontendResource {
 
 	@DELETE
 	@Path("clients/{id}")
-	@LRA(timeLimit = 5)
+	@LRA(timeLimit = 30)
 	public void deleteClient(@PathParam("id") UUID clientId) {
 		LOG.info("Deleting client " + clientId);
 		clientService.deleteClient(clientId);

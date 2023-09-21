@@ -12,6 +12,8 @@ public class ClientDTO {
 
 	private boolean deleted;
 
+	private boolean dirty;
+
 	public UUID getId() {
 		return id;
 	}
@@ -43,4 +45,13 @@ public class ClientDTO {
 	public void setDeleted(boolean deleted) {
 		this.deleted = deleted;
 	}
+
+	public boolean isDirty() {
+		return dirty;
+	}
+
+	public void setDirty(boolean dirty) {
+		this.dirty = dirty;
+	}
+
 }

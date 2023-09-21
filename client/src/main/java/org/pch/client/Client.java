@@ -19,6 +19,8 @@ public class Client extends PanacheEntityBase {
 
     private boolean deleted;
     
+    private boolean dirty;
+    
     private URI lra; 
 
     public UUID getId() {
@@ -60,4 +62,13 @@ public class Client extends PanacheEntityBase {
 	public void setLra(URI lra) {
 		this.lra = lra;
 	}
+
+	public boolean isDirty() {
+		return dirty;
+	}
+
+	public void setDirty(boolean dirty) {
+		this.dirty = dirty;
+	}
+	
 }

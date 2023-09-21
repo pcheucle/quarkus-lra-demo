@@ -48,6 +48,10 @@ export default {
 	        <span v-else class="badge bg-success">Active</span>
 	    </p>
 	    
+	    <p>
+	    	<span v-if=client.dirty class="badge bg-danger">Dirty delete</span>
+	    </p>
+	    
 	    <p v-if=!client.deleted>
 	    	<button type="button" class="btn btn-danger btn-sm" @click="deleteClient">Delete Client</button>
 	    </p>
