@@ -6,13 +6,17 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
+import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.lra.annotation.Compensate;
 import org.eclipse.microprofile.lra.annotation.Complete;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
 import org.jboss.logging.Logger;
 
 import io.quarkus.panache.common.Sort;
+import jakarta.inject.Inject;
 import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -30,6 +34,9 @@ import jakarta.ws.rs.core.UriInfo;
 public class ClientResource {
 
 	private static final Logger LOG = Logger.getLogger(ClientResource.class);
+
+	@Inject 
+	ManagedExecutor managedExecutor;
 
 	@Context
 	private UriInfo uriInfo;
@@ -67,23 +74,36 @@ public class ClientResource {
 	@Path("{id}")
 	@Transactional
 	@LRA(value = LRA.Type.MANDATORY, end = false)
-	public Response deleteClient(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lra, @PathParam("id") UUID clientId) {
+	public CompletionStage<Response> deleteClient(@HeaderParam(LRA_HTTP_CONTEXT_HEADER) URI lra,
+			@PathParam("id") UUID clientId) {
 
-		LOG.info("Deleting client " + clientId);
+		final CompletableFuture<Response> response = new CompletableFuture<>();
+		
+		LOG.info("Before submit");
 
-		Client client = Client.findById(clientId);
+		managedExecutor.submit(() -> {
+			LOG.info("Deleting client " + clientId);
 
-		if (client != null) {
-			client.setLra(lra);
-			client.setDeleted(true);
-			client.setDirty(true);
-			LOG.info("Client " + clientId + " deleted");
-			return Response.noContent().build();
+			Client client = Client.findById(clientId);
+			LOG.info("client " + client);
 
-		} else {
-			LOG.info("Client " + clientId + " not found");
-			return Response.status(Response.Status.NOT_FOUND).build();
-		}
+			if (client != null) {
+				client.setLra(lra);
+				client.setDeleted(true);
+				client.setDirty(true);
+				LOG.info("Client " + clientId + " deleted");
+				response.complete(Response.noContent().build());
+
+			} else {
+				LOG.info("Client " + clientId + " not found");
+				response.complete(Response.status(Response.Status.NOT_FOUND).build());
+
+			}
+		});
+		
+		LOG.info("Before return response");
+
+		return response;
 
 	}
 
