@@ -2,6 +2,7 @@ package org.pch.frontend.remote.client;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
@@ -16,7 +17,7 @@ public interface ClientService {
 
     @DELETE
     @Path("{id}")
-    Response deleteClient(@PathParam("id") UUID clientId);
+    CompletionStage<Response> deleteClient(@PathParam("id") UUID clientId);
 
     @GET
     List<ClientDTO> getClients();

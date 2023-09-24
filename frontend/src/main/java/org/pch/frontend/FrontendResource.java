@@ -5,6 +5,9 @@ import static org.eclipse.microprofile.lra.annotation.ws.rs.LRA.LRA_HTTP_CONTEXT
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 import org.eclipse.microprofile.lra.annotation.Compensate;
 import org.eclipse.microprofile.lra.annotation.ws.rs.LRA;
@@ -62,11 +65,34 @@ public class FrontendResource {
 
 	@DELETE
 	@Path("clients/{id}")
-	@LRA(timeLimit = 30)
+	@LRA(timeLimit = 5)
 	public void deleteClient(@PathParam("id") UUID clientId) {
+		
+		final CountDownLatch latch = new CountDownLatch(2);
+		final AtomicReference<Throwable> throwable = new AtomicReference<>();
+
+		BiConsumer<Response, Throwable> consumer = (r, t) -> {
+			if (t != null) {
+				throwable.set(t);
+			}
+			latch.countDown();
+		};
+
 		LOG.info("Deleting client " + clientId);
-		clientService.deleteClient(clientId);
-		accountService.deleteClientAccounts(clientId);
+		clientService.deleteClient(clientId).whenCompleteAsync(consumer);
+		accountService.deleteClientAccounts(clientId).whenCompleteAsync(consumer);
+
+		try {
+			latch.await();
+		} catch (InterruptedException ex) {
+			throw new WebApplicationException(ex, 500);
+		}
+
+		Throwable t = throwable.get();
+		if (t != null) {
+			throw new WebApplicationException("Failure in downstream service", t, 500);
+		}
+		
 	}
 
 	@Compensate
